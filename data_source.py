@@ -1,13 +1,22 @@
-import sqlite3
+from peewee import *
 
-conn = sqlite3.connect('javlibrary.db')
+db = SqliteDatabase('javlibrary.db')
 
-c = conn.cursor()
 
-c.execute('''CREATE TABLE jav
-          (id INT PRIMARY KEY AUTOINCREMENT, code TEXT UNIQUE,
-          name TEXT, star TEXT, score REAL,  category TEXT, image TEXT, torrent TEXT);''')
+class Choice(Model):
+    zip_id = CharField(unique=True)
+    name = CharField(null=True)
+    star = CharField(null=True)
+    category = CharField(null=True)
+    score = FloatField(null=True)
+    image = TextField(null=True)
+    torrent = TextField(null=True)
+    remark = CharField(null=True)
 
-conn.commit()
+    class Meta:
+        database = db
 
-conn.close()
+if __name__ == '__main__':
+    db.connect()
+    db.create_tables([Choice])
+    db.close()

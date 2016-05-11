@@ -1,1 +1,5 @@
 .idea/
+*.db
+cookie
+*.jpg
+__pycache__/
