@@ -4,6 +4,8 @@ import re
 import shutil
 import data_source as db
 import threading
+import time
+import os.path
 
 code_rule = re.compile('([A-Z]{3,6})-?([0-9]{3})')
 filter_rule = re.compile('(中字)|(中文)|(字幕)')
@@ -32,16 +34,16 @@ def request(host, router=None, flag='url', **kw):
         url = host + router
 
     try:
+        s = requests.Session()
         if flag == 'url':
-            req = requests.get(url, headers=headers, proxies=proxy, **kw)
+            req = s.get(url, headers=headers, proxies=proxy, **kw)
         else:
-            req = requests.get(url, headers=headers, proxies=proxy, stream=True, **kw)
+            req = s.get(url, headers=headers, proxies=proxy, stream=True, **kw)
         return req
-    # TODO ConnectionError MaxRetryError RemoteDisconnectedError
-    except ConnectionError as e:
+    except requests.ConnectionError as e:
         print(e)
         print("傻逼断网了")
-        raise InterruptedError
+        raise requests.ConnectionError
 
 
 class Album(object):
@@ -102,47 +104,66 @@ class Album(object):
                     self.torrent = r.get_text()
 
     def get_profile(self):
-        profile_data = request(library_host, library_router, params={'keyword': self.zip_id})
-        soup = BeautifulSoup(profile_data.text, 'lxml')
-        if soup.find(class_="videos") is None:
-            self.set_score(soup)
-            self.set_star(soup)
-            self.set_category(soup)
-            self.set_image(soup)
-            self.set_name(soup)
-        elif soup.find(text="搜寻没有结果。"):
-            result = "Could not find " + self.zip_id + " in JAV"
-            print(result)
-            self.remark = 'No results'
-        else:
-            result = "There are many videos for " + self.zip_id + " in JAV"
-            print(result)
-            self.remark = 'Too many results'
+        try:
+            profile_data = request(library_host, library_router, params={'keyword': self.zip_id})
+            soup = BeautifulSoup(profile_data.text, 'lxml')
+            if soup.find(class_="videos") is None:
+                self.set_score(soup)
+                self.set_star(soup)
+                self.set_category(soup)
+                self.set_image(soup)
+                self.set_name(soup)
+            elif soup.find(text="搜寻没有结果。"):
+                result = "Could not find " + self.zip_id + " in JAV"
+                print(result)
+                self.remark = 'No results'
+            else:
+                result = "There are many videos for " + self.zip_id + " in JAV"
+                print(result)
+                self.remark = 'Too many results'
+        except requests.ConnectionError as e:
+            print("Couldn't access " + self.zip_id + " profile")
+            print(e)
+            raise requests.ConnectionError
 
     def get_intro(self):
-        torrent_data = request(caoliu_host, self.intro, cookies=cookie)
-        torrent_data.encoding = 'gbk'
-        soup = BeautifulSoup(torrent_data.text, 'lxml')
-        self.set_torrent(soup)
+        try:
+            torrent_data = request(caoliu_host, self.intro, cookies=cookie)
+            torrent_data.encoding = 'gbk'
+            soup = BeautifulSoup(torrent_data.text, 'lxml')
+            self.set_torrent(soup)
+        except requests.ConnectionError as e:
+            print("Couldn't enter intro page and download torrent")
+            print(e)
+            raise requests.ConnectionError
 
 
 def image(album):
     if album.image is not None:
-        image_raw = request(album.image, flag='file')
-        image_name = album.zip_id + '__' + str(album.score) + '.jpg'
-        if image_raw.status_code == 200:
-            with open(image_name, 'wb') as j:
-                image_raw.raw.decode_content = True
-                shutil.copyfileobj(image_raw.raw, j)
-            j.close()
-        else:
-            print("Could not download " + image_name)
+        try:
+            image_raw = request(album.image, flag='file')
+            image_name = album.zip_id + '__' + str(album.score) + '.jpg'
+            if image_raw.status_code == 200 and os.path.exists(image_name) is False:
+                with open(image_name, 'wb') as j:
+                    image_raw.raw.decode_content = True
+                    shutil.copyfileobj(image_raw.raw, j)
+                j.close()
+            else:
+                print("Could not download " + image_name)
+        except requests.ConnectionError as e:
+            print("Couldn't access to image page due to NetError")
+            raise requests.ConnectionError
 
 
 def crawling(page):
     for i in page:
         index_payload = {'fid': 15, 'page': i}
-        req = request(caoliu_host, caoliu_index_router, params=index_payload, cookies=cookie)
+        try:
+            req = request(caoliu_host, caoliu_index_router, params=index_payload, cookies=cookie)
+        except requests.ConnectionError as e:
+            time.sleep(10)
+            print("Couldn't access to index page " + str(i))
+            continue
         req.encoding = 'gbk'
         soup = BeautifulSoup(req.text, 'lxml')
         link = soup.find_all('a')
@@ -150,12 +171,17 @@ def crawling(page):
             video = Album()
             video.init_zip_id(l)
             if video.check is True:
-                video.get_profile()
-                video.get_intro()
-                image(video)
-                video_record = db.Choice.create_or_get(zip_id=video.zip_id, name=video.name, star=' '.join(video.star),
-                                                       category=' '.join(video.category), score=video.score,
-                                                       image=video.image, torrent=video.torrent, remark=video.remark)
+                try:
+                    video.get_profile()
+                    video.get_intro()
+                    image(video)
+                    video_record = db.Choice.create_or_get(zip_id=video.zip_id, name=video.name, star=' '.join(video.star),
+                                                           category=' '.join(video.category), score=video.score,
+                                                           image=video.image, torrent=video.torrent, remark=video.remark)
+                except requests.ConnectionError as e:
+                    time.sleep(10)
+                    print("")
+                    continue
 
 
 def building_thread():
