@@ -2,4 +2,5 @@
 *.db
 cookie
 *.jpg
+*.log
 __pycache__/
