@@ -7,24 +7,30 @@ import time
 import os.path
 import multiprocessing
 import logging
+import configparser
 
-LOG_FILE = 'AV_profIle.log'
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+CONF_LOG = "logger.conf"
+logging.config.fileConfig(CONF_LOG)
+logger = logging.getLogger('crawler')
 
-handler = logging.FileHandler(LOG_FILE)
-handler.setLevel(logging.DEBUG)
 
-formatter = logging.Formatter('%(asctime)s - %(process)d - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
+# LOG_FILE = 'AV_profIle.log'
+# logger = logging.getLogger()
+# logger.setLevel(logging.DEBUG)
 
-logger.addHandler(handler)
+# handler = logging.FileHandler(LOG_FILE)
+# handler.setLevel(logging.DEBUG)
+#
+# formatter = logging.Formatter('%(asctime)s - %(process)d - %(levelname)s - %(message)s')
+# handler.setFormatter(formatter)
+#
+# logger.addHandler(handler)
 
 
 code_rule = re.compile('([A-Z]{3,6})-?([0-9]{3})')
 filter_rule = re.compile('(中字)|(中文)|(字幕)')
-caoliu_host = 'http://cl.woxise.com/'
-caoliu_index_router = 'thread0806.php'
+
+
 library_host = 'http://www.javlibrary.com'
 library_router = '/cn/vl_searchbyid.php'
 cookie = dict()
@@ -32,6 +38,16 @@ with open("cookie", 'r') as f:
     for line in f:
         cook_list = line.rstrip().split("\t")
         cookie[cook_list[0]] = cook_list[1]
+
+
+def get_config(section, key):
+    config = configparser.ConfigParser()
+    config.read('static.conf')
+    return config.get(section, key)
+
+
+caoliu_host = get_config('WebURL', 'MainHost')
+caoliu_index_router = get_config('WebURL', 'IndexRouter')
 
 
 def request(host, router=None, flag='url', **kw):
@@ -176,6 +192,8 @@ def image(album):
 
 def crawling(page):
     index_payload = {'fid': 15, 'page': page}
+
+
     try:
         req = request(caoliu_host, caoliu_index_router, params=index_payload, cookies=cookie)
     except requests.ConnectionError as e:

@@ -4,3 +4,4 @@ cookie
 *.jpg
 *.log
 __pycache__/
+*.conf
