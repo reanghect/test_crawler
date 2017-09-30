@@ -98,7 +98,8 @@ class Album(object):
 
     def get_intro(self, caoliu_host, cookie):
         try:
-            torrent_data = request(caoliu_host, self.intro, cookies=cookie)
+            torrent_add = caoliu_host + self.intro
+            torrent_data = request(torrent_add, cookies=cookie)
             torrent_data.encoding = 'gbk'
             soup = BeautifulSoup(torrent_data.text, 'lxml')
             self.set_torrent(soup)

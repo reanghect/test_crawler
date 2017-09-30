@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
-import logging
+import logging.config
 import configparser
 import requests
 
@@ -16,13 +16,17 @@ def get_config(section, key):
 
 
 def request(url, flag='url', is_proxy=False, **kw):
-    if is_proxy:
-        http_proxy = get_config("Proxy", "http")
-        https_proxy = get_config("Proxy", "https")
-        proxy = {
-            "http": http_proxy,
-            "https": https_proxy
-        }
+
+    if get_config("Proxy", "isProxy") == '0':
+        if is_proxy:
+            http_proxy = get_config("Proxy", "http")
+            https_proxy = get_config("Proxy", "https")
+            proxy = {
+                "http": http_proxy,
+                "https": https_proxy
+            }
+        else:
+            proxy = None
     else:
         proxy = None
 

@@ -12,6 +12,8 @@ from crawlerHelper import request, get_config
 
 caoliu_host = get_config('WebURL', 'MainHost')
 caoliu_index_router = get_config('WebURL', 'IndexRouter')
+library_host = get_config('WebURL', 'LibraryHost')
+
 cookie = dict()
 with open("cookie", 'r') as f:
     for line in f:
@@ -39,10 +41,11 @@ def image(album):
 
 
 def crawling(page):
-    index_payload = {'fid': 15, 'page': page}
+    index_payload = {'fid': 26, 'page': page}
 
     try:
-        req = request(caoliu_host, caoliu_index_router, params=index_payload, cookies=cookie)
+        record_add = caoliu_host + caoliu_index_router
+        req = request(record_add, params=index_payload, cookies=cookie)
     except requests.ConnectionError as e:
         time.sleep(50)
         logger.error(e)
@@ -56,8 +59,8 @@ def crawling(page):
         video.init_zip_id(l)
         if video.check is True:
             try:
-                video.get_profile()
-                video.get_intro()
+                video.get_profile(library_host)
+                video.get_intro(caoliu_host, cookie)
                 image(video)
                 db.Choice.create_or_get(zip_id=video.zip_id, name=video.name, star=' '.join(video.star),
                                         category=' '.join(video.category), score=video.score,
@@ -69,10 +72,12 @@ def crawling(page):
 
 
 if __name__ == "__main__":
-    pool = multiprocessing.Pool(processes=3)
-    for page_number in range(1, 600):
-        pool.apply_async(crawling, (page_number, ))
+    # pool = multiprocessing.Pool(processes=3)
+    # for page_number in range(1, 600):
+    #     pool.apply_async(crawling, (page_number, ))
     logger.info('Ready to craw AV in 2 processes')
-    pool.close()
-    pool.join()
+    # pool.close()
+    # pool.join()
+    for page_number in range(1, 600):
+        crawling(page_number)
     logger.info('All AV loaded into database')
