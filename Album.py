@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 logger = logging.getLogger('crawler.Album')
 code_rule = re.compile('([A-Z]{3,6})-?([0-9]{3})')
 filter_rule = re.compile('(中字)|(中文)|(字幕)')
+exclude_rule = re.compile('VIP-?[0-9]{3}')
 
 
 class Album(object):
@@ -26,7 +27,8 @@ class Album(object):
 
     def init_zip_id(self, tag):
         matching = re.search(code_rule, tag.get_text())
-        if matching:
+        not_matching = re.search(exclude_rule, tag.get_text())
+        if matching and not not_matching:
             zip_id = matching.group(1) + matching.group(2)
             logger.info('getting av ' + zip_id)
             if re.search(filter_rule, tag.get_text()):
@@ -71,10 +73,11 @@ class Album(object):
             for r in raw:
                 if re.search('(http://www\.rmdown\.com)/link', r.get_text()):
                     self.torrent = r.get_text()
+                    return
 
     def get_profile(self, library_host):
         try:
-            profile_data = request(library_host, params={'keyword': self.zip_id})
+            profile_data = request(library_host, is_proxy=True, params={'keyword': self.zip_id})
             soup = BeautifulSoup(profile_data.text, 'lxml')
             if soup.find(class_="videos") is None:
                 logger.info('Found AV Profile of ' + self.zip_id)

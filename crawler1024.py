@@ -13,6 +13,7 @@ from crawlerHelper import request, get_config
 caoliu_host = get_config('WebURL', 'MainHost')
 caoliu_index_router = get_config('WebURL', 'IndexRouter')
 library_host = get_config('WebURL', 'LibraryHost')
+library_router = get_config('WebURL', 'LibraryRouter')
 
 cookie = dict()
 with open("cookie", 'r') as f:
@@ -26,8 +27,8 @@ logger = logging.getLogger('crawler.Album')
 def image(album):
     if album.image is not None:
         try:
-            image_raw = request(album.image, flag='file')
-            image_name = album.zip_id + '__' + str(album.score) + '.jpg'
+            image_raw = request('http:' + album.image, flag='file')
+            image_name = album.zip_id + '.jpg'
             if image_raw.status_code == 200 and os.path.exists(image_name) is False:
                 with open(image_name, 'wb') as j:
                     image_raw.raw.decode_content = True
@@ -59,13 +60,13 @@ def crawling(page):
         video.init_zip_id(l)
         if video.check is True:
             try:
-                video.get_profile(library_host)
+                video.get_profile(library_host+library_router)
                 video.get_intro(caoliu_host, cookie)
                 image(video)
                 db.Choice.create_or_get(zip_id=video.zip_id, name=video.name, star=' '.join(video.star),
                                         category=' '.join(video.category), score=video.score,
                                         image=video.image, torrent=video.torrent, remark=video.remark)
-            except requests.ConnectionError as e:
+            except Exception as e:
                 time.sleep(50)
                 logger(e)
                 continue
