@@ -30,6 +30,13 @@ def image(album):
             image_raw = request('http:' + album.image, flag='file')
             image_name = album.zip_id + '.jpg'
             if image_raw.status_code == 200 and os.path.exists(image_name) is False:
+                statvfs = os.statvfs('/')
+                # total_disk_space = statvfs.f_frsize * statvfs.f_blocks
+                free_disk_space = statvfs.f_frsize * statvfs.f_bfree
+
+                if free_disk_space/1024/1024 < 100:
+                    logger.warn('no more space, system exists')
+                    os._exit(0)
                 with open(image_name, 'wb') as j:
                     image_raw.raw.decode_content = True
                     shutil.copyfileobj(image_raw.raw, j)
