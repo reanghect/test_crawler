@@ -28,18 +28,21 @@ def image(album):
         try:
             image_raw = request('http:' + album.image, flag='file')
             image_name = album.zip_id + '.jpg'
-            if image_raw.status_code == 200 and os.path.exists('image/' + image_name) is False:
-                statvfs = os.statvfs('/')
-                # total_disk_space = statvfs.f_frsize * statvfs.f_blocks
-                free_disk_space = statvfs.f_frsize * statvfs.f_bfree
+            if image_raw.status_code == 200:
+                if os.path.exists('image/' + image_name) is False:
+                    statvfs = os.statvfs('/')
+                    # total_disk_space = statvfs.f_frsize * statvfs.f_blocks
+                    free_disk_space = statvfs.f_frsize * statvfs.f_bfree
 
-                if free_disk_space/1024/1024 < 100:
-                    logger.warn('no more space, system exists')
-                    os._exit(0)
-                with open('image/' + image_name, 'wb') as j:
-                    image_raw.raw.decode_content = True
-                    shutil.copyfileobj(image_raw.raw, j)
-                j.close()
+                    if free_disk_space / 1024 / 1024 < 100:
+                        logger.warn('no more space, system exists')
+                        os._exit(0)
+                    with open('image/' + image_name, 'wb') as j:
+                        image_raw.raw.decode_content = True
+                        shutil.copyfileobj(image_raw.raw, j)
+                    j.close()
+                else:
+                    logger.info("Image has already exists " + image_name)
             else:
                 logger.error("Could not download " + image_name)
         except requests.ConnectionError as e:
@@ -70,9 +73,13 @@ def crawling(page):
                 video.get_profile(library_host+library_router)
                 video.get_intro(caoliu_host, cookie)
                 image(video)
-                db.Choice.create_or_get(zip_id=video.zip_id, name=video.name, star=' '.join(video.star),
+                db.Choice.get_or_create(zip_id=video.zip_id, name=video.name, star=' '.join(video.star),
                                         category=' '.join(video.category), score=video.score,
                                         image=video.image, torrent=video.torrent, remark=video.remark)
+            except db.Choice.IntegrityError as e:
+                logger.warn("zip_id " + video.zip_id + 'already exists in db...')
+                logger.warn(e)
+                continue
             except Exception as e:
                 time.sleep(50)
                 logger.error(e)
