@@ -1,4 +1,5 @@
 from peewee import *
+import os.path
 
 db = SqliteDatabase('javlibrary.db')
 
@@ -21,3 +22,5 @@ if __name__ == '__main__':
     db.connect()
     db.create_tables([Choice])
     db.close()
+    if os.path.exists('image') is False:
+        os.mkdir('image')

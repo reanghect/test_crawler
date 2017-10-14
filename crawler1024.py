@@ -4,7 +4,6 @@ import shutil
 import data_source as db
 import time
 import os.path
-import multiprocessing
 import logging
 import Album
 from crawlerHelper import request, get_config
@@ -29,7 +28,7 @@ def image(album):
         try:
             image_raw = request('http:' + album.image, flag='file')
             image_name = album.zip_id + '.jpg'
-            if image_raw.status_code == 200 and os.path.exists(image_name) is False:
+            if image_raw.status_code == 200 and os.path.exists('image/' + image_name) is False:
                 statvfs = os.statvfs('/')
                 # total_disk_space = statvfs.f_frsize * statvfs.f_blocks
                 free_disk_space = statvfs.f_frsize * statvfs.f_bfree
@@ -37,7 +36,7 @@ def image(album):
                 if free_disk_space/1024/1024 < 100:
                     logger.warn('no more space, system exists')
                     os._exit(0)
-                with open(image_name, 'wb') as j:
+                with open('image/' + image_name, 'wb') as j:
                     image_raw.raw.decode_content = True
                     shutil.copyfileobj(image_raw.raw, j)
                 j.close()
@@ -49,6 +48,7 @@ def image(album):
 
 
 def crawling(page):
+    logger.info('crawling page ' + str(page))
     index_payload = {'fid': 26, 'page': page}
 
     try:
@@ -75,7 +75,7 @@ def crawling(page):
                                         image=video.image, torrent=video.torrent, remark=video.remark)
             except Exception as e:
                 time.sleep(50)
-                logger(e)
+                logger.error(e)
                 continue
 
 
@@ -86,6 +86,6 @@ if __name__ == "__main__":
     logger.info('Ready to craw AV in 2 processes')
     # pool.close()
     # pool.join()
-    for page_number in range(1, 600):
+    for page_number in range(1, 100):
         crawling(page_number)
     logger.info('All AV loaded into database')
