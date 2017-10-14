@@ -70,7 +70,7 @@ def crawling(page):
                 video.get_profile(library_host+library_router)
                 video.get_intro(caoliu_host, cookie)
                 image(video)
-                db.Choice.create_or_get(zip_id=video.zip_id, name=video.name, star=' '.join(video.star),
+                db.Choice.get_or_create(zip_id=video.zip_id, name=video.name, star=' '.join(video.star),
                                         category=' '.join(video.category), score=video.score,
                                         image=video.image, torrent=video.torrent, remark=video.remark)
             except Exception as e:
