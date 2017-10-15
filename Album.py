@@ -88,11 +88,11 @@ class Album(object):
                 self.set_name(soup)
             elif soup.find(text="搜寻没有结果。"):
                 result = "Could not find " + self.zip_id + " in JAV"
-                logger.error(result)
+                logger.warn(result)
                 self.remark = 'No results'
             else:
                 result = "There are many videos for " + self.zip_id + " in JAV"
-                logger.error(result)
+                logger.warn(result)
                 self.remark = 'Too many results'
         except requests.ConnectionError as e:
             logger.error("Couldn't access " + self.zip_id + " profile")
