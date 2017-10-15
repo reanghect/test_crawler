@@ -7,6 +7,7 @@ import os.path
 import logging
 import Album
 from crawlerHelper import request, get_config
+from peewee import *
 
 
 caoliu_host = get_config('WebURL', 'MainHost')
@@ -76,7 +77,7 @@ def crawling(page):
                 db.Choice.get_or_create(zip_id=video.zip_id, name=video.name, star=' '.join(video.star),
                                         category=' '.join(video.category), score=video.score,
                                         image=video.image, torrent=video.torrent, remark=video.remark)
-            except db.Choice.IntegrityError as e:
+            except IntegrityError as e:
                 logger.warn("zip_id " + video.zip_id + 'already exists in db...')
                 logger.warn(e)
                 continue
