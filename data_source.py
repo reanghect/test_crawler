@@ -7,6 +7,7 @@ db = SqliteDatabase('javlibrary.db')
 class Choice(Model):
     zip_id = CharField(unique=True)
     name = CharField(null=True)
+    name_CN = CharField(null=True)
     star = CharField(null=True)
     category = CharField(null=True)
     score = FloatField(null=True)

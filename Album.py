@@ -20,6 +20,7 @@ class Album(object):
         self.score = float(0)
         self.category = []
         self.name = 'Null'
+        self.name_CN = 'Null'
         self.star = []
         self.image = None
         self.torrent = None
@@ -35,6 +36,7 @@ class Album(object):
                 logger.info('Checking AV ' + zip_id + ' satisfied')
                 self.zip_id = zip_id
                 self.intro = tag['href']
+                self.name_CN = tag.get_text()
                 self.check = True
 
     def set_score(self, tag):
